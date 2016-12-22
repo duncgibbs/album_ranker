@@ -1,6 +1,5 @@
 import spotipy
 import spotipy.util as util
-from os.path import expanduser
 from os import path
 from credentials import *
 from datetime import date
