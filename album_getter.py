@@ -2,6 +2,8 @@ import spotipy
 import spotipy.util as util
 from os.path import expanduser
 from os import path
+from credentials import *
+from datetime import date
 
 def album_string(album):
     album_name = str(album['name'].encode('utf8'))
@@ -14,8 +16,8 @@ def album_string(album):
 def track_album_string(track):
     return album_string({'name':track['album']['name'], 'artists':track['artists']})
 
-def write_album_to_file(album):
-    if '(2016)' in album:
+def write_album_to_file(album, year):
+    if '(' + year + ')' in album:
         filename = 'released_this_year'
     else:
         filename = 'released_different_year'
@@ -32,13 +34,19 @@ def clear_album_list_files():
     file.close()
 
 clear_album_list_files()
-username = '123845899'
-token = util.prompt_for_user_token(username)
+username = raw_input("Spotify User ID: ")
+if not username:
+    username = SPOTIFY_USER_ID
+year_in_consideration = raw_input("Year in consideration: ")
+if not year_in_consideration:
+    year_in_consideration = str(date.today().year)
+    
+token = util.prompt_for_user_token(username, client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI)
 if token:
     sp = spotipy.Spotify(auth=token)
     playlists = sp.user_playlists(username)
     for playlist in playlists['items']:
-        if '2016' in playlist['name']:
+        if year_in_consideration in playlist['name']:
             print playlist['name']
             tracks = sp.user_playlist_tracks(username, playlist['id'])
             results = set()
@@ -51,5 +59,5 @@ if token:
             for id in album_ids:
                 results.add(album_string(sp.album(id)))
             for entry in results:
-                write_album_to_file(entry)
+                write_album_to_file(entry, year_in_consideration)
 
