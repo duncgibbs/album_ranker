@@ -1,3 +1,4 @@
 released_this_year.txt
 released_different_year.txt
 .cache-*
+credentials.py
