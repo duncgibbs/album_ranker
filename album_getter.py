@@ -33,6 +33,19 @@ def clear_album_list_files():
     file = open(filepath + '/released_different_year.txt', 'w')
     file.close()
 
+def get_unique_albums(username, playlist_id, offset):
+    tracks = sp.user_playlist_tracks(username, playlist_id, offset=offset)
+    results = set()
+    album_ids = set()
+    for track in tracks['items']:
+        if track['is_local']:
+            results.add(track_album_string(track['track']))
+        else:
+            album_ids.add(track['track']['album']['id'])
+    for id in album_ids:
+        results.add(album_string(sp.album(id)))
+    return (results, tracks['next'])
+
 clear_album_list_files()
 username = raw_input("Spotify User ID: ")
 if not username:
@@ -40,24 +53,24 @@ if not username:
 year_in_consideration = raw_input("Year in consideration: ")
 if not year_in_consideration:
     year_in_consideration = str(date.today().year)
-    
+
 token = util.prompt_for_user_token(username, client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI)
 if token:
     sp = spotipy.Spotify(auth=token)
     playlists = sp.user_playlists(username)
+    results = set()
     for playlist in playlists['items']:
         if year_in_consideration in playlist['name']:
             print playlist['name']
-            tracks = sp.user_playlist_tracks(username, playlist['id'])
-            results = set()
-            album_ids = set()
-            for track in tracks['items']:
-                if track['is_local']:
-                    results.add(track_album_string(track['track']))
-                else:
-                    album_ids.add(track['track']['album']['id'])
-            for id in album_ids:
-                results.add(album_string(sp.album(id)))
-            for entry in results:
-                write_album_to_file(entry, year_in_consideration)
+            offset = 0
+            (albums, more_tracks) = get_unique_albums(username, playlist['id'], offset)
+            results = results | albums
+            while more_tracks:
+                offset += 100
+                (albums, more_tracks) = get_unique_albums(username, playlist['id'], offset)
+                results = results | albums
+    for entry in results:
+        write_album_to_file(entry, year_in_consideration)
+
+            
 
